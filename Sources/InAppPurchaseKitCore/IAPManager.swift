@@ -33,11 +33,11 @@ public enum PurchaseStatus: Int, Comparable {
 
 // MARK: - IAPManager
 
-public final class IAPManager {
+final class IAPManager {
 
     // MARK: - Singleton
 
-    public static let shared = IAPManager()
+    static let shared = IAPManager()
 
     // MARK: - Admin Backdoor
 
@@ -53,7 +53,7 @@ public final class IAPManager {
 
     // MARK: - Configure (프로젝트별 래퍼에서 호출)
 
-    public static func configure(
+    static func configure(
         productIds: [String],
         appGroupIdentifier: String? = nil,
         freeTrialKeychainKey: String? = nil,
@@ -70,34 +70,34 @@ public final class IAPManager {
 
     // MARK: - Notifications
 
-    public static let didCompletePurchaseNotification = Notification.Name("IAPManagerDidCompletePurchase")
-    public static let didExpirePurchaseNotification = Notification.Name("IAPManagerDidExpirePurchase")
-    public static let needPresentPurchaseSceneNotification = Notification.Name("IAPManagerNeedPresentPurchaseScene")
+    static let didCompletePurchaseNotification = Notification.Name("IAPManagerDidCompletePurchase")
+    static let didExpirePurchaseNotification = Notification.Name("IAPManagerDidExpirePurchase")
+    static let needPresentPurchaseSceneNotification = Notification.Name("IAPManagerNeedPresentPurchaseScene")
 
     // MARK: - Status (단일 소스)
 
     private static let statusKey = "IAPManager.lastStatus"
 
-    private(set) public var lastStatus: PurchaseStatus = .free
+    private(set) var lastStatus: PurchaseStatus = .free
 
-    public var purchaseStatus: PurchaseStatus {
+    var purchaseStatus: PurchaseStatus {
         if self.lastStatus == .freeTrial && !self.isInFreeTrial {
             self.applyStatus(.free)
         }
         return self.lastStatus
     }
 
-    public var isPurchased: Bool {
+    var isPurchased: Bool {
         return self.lastStatus.isPremium
     }
 
-    public var isAdmin: Bool {
+    var isAdmin: Bool {
         return self.lastStatus == .admin
     }
 
     // MARK: - Free Trial (키체인 기반)
 
-    public var isInFreeTrial: Bool {
+    var isInFreeTrial: Bool {
         guard let key = Self.freeTrialKeychainKey,
               let startDateString = Self.keychainGetString(forKey: key),
               let startDate = ISO8601DateFormatter().date(from: startDateString)
@@ -108,13 +108,13 @@ public final class IAPManager {
         return elapsed < Self.freeTrialDays
     }
 
-    public var hasUsedFreeTrial: Bool {
+    var hasUsedFreeTrial: Bool {
         guard let key = Self.freeTrialKeychainKey else { return false }
         return Self.keychainGetString(forKey: key) != nil
     }
 
     @discardableResult
-    public func startFreeTrialIfNeeded() -> Bool {
+    func startFreeTrialIfNeeded() -> Bool {
         guard let key = Self.freeTrialKeychainKey else { return false }
         guard !self.hasUsedFreeTrial else { return false }
         let formatter = ISO8601DateFormatter()
@@ -161,32 +161,32 @@ public final class IAPManager {
     }
 
     @discardableResult
-    public func verifyAdminCode(_ code: String) -> Bool {
+    func verifyAdminCode(_ code: String) -> Bool {
         let isValid = code.lowercased() == Self.adminString.lowercased()
         self.applyStatus(isValid ? .admin : self.defaultFreeStatus)
         return isValid
     }
 
-    public func disableAdmin() {
+    func disableAdmin() {
         if self.isAdmin {
             self.applyStatus(self.defaultFreeStatus)
         }
     }
 
-    public var isForceFree: Bool {
+    var isForceFree: Bool {
         return self.lastStatus == .forceFree
     }
 
-    public func setForceFree(_ enabled: Bool) {
+    func setForceFree(_ enabled: Bool) {
         self.applyStatus(enabled ? .forceFree : self.defaultFreeStatus)
     }
 
-    public func setPurchased(_ purchased: Bool) {
+    func setPurchased(_ purchased: Bool) {
         self.applyStatus(purchased ? .subscribed : self.defaultFreeStatus)
     }
 
     @discardableResult
-    public func checkPurchaseStatus() async -> Bool {
+    func checkPurchaseStatus() async -> Bool {
         if self.isAdmin { return true }
 
         var hasActiveSubscription = false
@@ -202,14 +202,14 @@ public final class IAPManager {
 
     // MARK: - Fetch Products
 
-    public func fetchProducts() async throws -> [Product] {
+    func fetchProducts() async throws -> [Product] {
         let products = try await Product.products(for: Self.productIds)
         return products.sorted { $0.price < $1.price }
     }
 
     // MARK: - Purchase
 
-    public func purchase(_ product: Product) async throws -> Transaction? {
+    func purchase(_ product: Product) async throws -> Transaction? {
         if self.isAdmin { return nil }
 
         let result = try await product.purchase()
@@ -231,7 +231,7 @@ public final class IAPManager {
 
     // MARK: - Restore
 
-    public func restorePurchases() async throws -> Bool {
+    func restorePurchases() async throws -> Bool {
         if self.isAdmin { return true }
         try await AppStore.sync()
         return await self.checkPurchaseStatus()
@@ -239,7 +239,7 @@ public final class IAPManager {
 
     // MARK: - Manage Subscriptions
 
-    public func openManageSubscriptions() {
+    func openManageSubscriptions() {
         Task {
             if let windowScene = await UIApplication.shared.connectedScenes.first as? UIWindowScene {
                 do {
@@ -258,7 +258,7 @@ public final class IAPManager {
 
     // MARK: - Subscription Alert
 
-    public func presentNeedSubscriptionAlert(from viewController: UIViewController? = nil) {
+    func presentNeedSubscriptionAlert(from viewController: UIViewController? = nil) {
         let alert = UIAlertController(
             title: I18N.alert_subscription_required_title,
             message: I18N.alert_subscription_required_message,
