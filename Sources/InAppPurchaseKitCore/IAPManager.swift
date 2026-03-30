@@ -321,6 +321,8 @@ public final class IAPManager {
     private func restoreStatus() -> PurchaseStatus {
         let raw = UserDefaults.standard.integer(forKey: IAPManager.statusKey)
         let status = PurchaseStatus(rawValue: raw) ?? .free
+        // subscribed는 StoreKit 검증 필요 → checkPurchaseStatus에서 처리
+        if status == .subscribed { return .free }
         if status == .freeTrial && !self.isInFreeTrial { return .free }
         return status
     }
