@@ -32,17 +32,20 @@ public enum PurchaseStatus: Int, Comparable {
 
 public struct IAPConfiguration {
     public var productIds: [String]
+    public var adminString: String
     public var appGroupIdentifier: String?
     public var freeTrialKeychainKey: String?
     public var freeTrialDays: Int
 
     public init(
         productIds: [String],
+        adminString: String,
         appGroupIdentifier: String? = nil,
         freeTrialKeychainKey: String? = nil,
         freeTrialDays: Int = 7
     ) {
         self.productIds = productIds
+        self.adminString = adminString
         self.appGroupIdentifier = appGroupIdentifier
         self.freeTrialKeychainKey = freeTrialKeychainKey
         self.freeTrialDays = freeTrialDays
@@ -59,7 +62,7 @@ public final class IAPManager {
 
     // MARK: - Configuration
 
-    private var config: IAPConfiguration = .init(productIds: [])
+    private(set) public var config: IAPConfiguration = .init(productIds: [], adminString: "")
 
     public func configure(_ config: IAPConfiguration) {
         self.config = config
