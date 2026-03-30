@@ -1,5 +1,5 @@
 import XCTest
-@testable import InAppPurchaseKit
+@testable import IAPKit
 
 final class InAppPurchaseKitTests: XCTestCase {
     func testPurchaseStatusComparable() {

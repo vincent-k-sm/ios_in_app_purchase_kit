@@ -3,28 +3,28 @@
 import PackageDescription
 
 let package = Package(
-    name: "InAppPurchaseKit",
+    name: "ios_in_app_purchase_kit",
     defaultLocalization: "en",
     platforms: [
         .iOS(.v17)
     ],
     products: [
         .library(
-            name: "InAppPurchaseKit",
-            targets: ["InAppPurchaseKit"]
+            name: "IAPKit",
+            targets: ["IAPKit"]
         )
     ],
     targets: [
         .target(
-            name: "InAppPurchaseKit",
+            name: "IAPKit",
             path: "Sources/InAppPurchaseKit",
             resources: [
                 .process("Localizable")
             ]
         ),
         .testTarget(
-            name: "InAppPurchaseKitTests",
-            dependencies: ["InAppPurchaseKit"],
+            name: "IAPKitTests",
+            dependencies: ["IAPKit"],
             path: "Tests/InAppPurchaseKitTests"
         )
     ]
