@@ -10,21 +10,21 @@ let package = Package(
     ],
     products: [
         .library(
-            name: "IAPKit",
-            targets: ["IAPKit"]
+            name: "InAppPurchaseKitCore",
+            targets: ["InAppPurchaseKitCore"]
         )
     ],
     targets: [
         .target(
-            name: "IAPKit",
+            name: "InAppPurchaseKitCore",
             path: "Sources/InAppPurchaseKit",
             resources: [
                 .process("Localizable")
             ]
         ),
         .testTarget(
-            name: "IAPKitTests",
-            dependencies: ["IAPKit"],
+            name: "InAppPurchaseKitCoreTests",
+            dependencies: ["InAppPurchaseKitCore"],
             path: "Tests/InAppPurchaseKitTests"
         )
     ]
