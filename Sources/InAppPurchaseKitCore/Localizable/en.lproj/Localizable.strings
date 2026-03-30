@@ -1,0 +1,16 @@
+/* Errors */
+"iap_error_verification_failed" = "Payment verification failed.";
+"iap_error_no_products" = "Unable to load products.";
+"iap_error_purchase_failed" = "Purchase failed.";
+"iap_error_restore_failed" = "No purchases to restore.";
+"iap_error_timeout" = "Server response timed out. Please try again.";
+
+/* Messages */
+"iap_msg_purchase_success" = "Subscription completed!";
+"iap_msg_restore_success" = "Subscription restored!";
+
+/* Alerts */
+"iap_alert_subscription_required_title" = "Subscription Required";
+"iap_alert_subscription_required_message" = "This feature is available for premium subscribers only.";
+"iap_alert_subscription_required_action" = "Subscribe";
+"iap_alert_cancel" = "Cancel";
