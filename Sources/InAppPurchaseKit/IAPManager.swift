@@ -42,12 +42,27 @@ public final class IAPManager {
 
     private static let adminString: String = "vincent"
 
-    // MARK: - 프로젝트별 설정 (AppDelegate에서 세팅)
+    // MARK: - Properties
 
-    public static var productIds: [String] = []
-    public static var appGroupIdentifier: String?
-    public static var freeTrialKeychainKey: String?
-    public static var freeTrialDays: Int = 7
+    private static var productIds: [String] = []
+    private static var appGroupIdentifier: String?
+    private static var freeTrialKeychainKey: String?
+    private static var freeTrialDays: Int = 7
+    private static let appGroupPurchasedKey = "isPurchased"
+
+    // MARK: - Configure (프로젝트별 래퍼에서 호출)
+
+    public static func configure(
+        productIds: [String],
+        appGroupIdentifier: String? = nil,
+        freeTrialKeychainKey: String? = nil,
+        freeTrialDays: Int = 7
+    ) {
+        Self.productIds = productIds
+        Self.appGroupIdentifier = appGroupIdentifier
+        Self.freeTrialKeychainKey = freeTrialKeychainKey
+        Self.freeTrialDays = freeTrialDays
+    }
 
     // MARK: - Notifications
 
@@ -320,7 +335,7 @@ public final class IAPManager {
     private func syncPurchaseStatusToAppGroup() {
         guard let groupId = Self.appGroupIdentifier else { return }
         let defaults = UserDefaults(suiteName: groupId)
-        defaults?.set(self.isPurchased, forKey: "isPurchased")
+        defaults?.set(self.isPurchased, forKey: Self.appGroupPurchasedKey)
     }
 
     // MARK: - Private
