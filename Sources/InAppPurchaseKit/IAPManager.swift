@@ -145,8 +145,15 @@ public final class IAPManager {
         }
     }
 
+    private static let forceFreeKey = "IAPManager.forceFree"
+
+    public var isForceFree: Bool {
+        return UserDefaults.standard.bool(forKey: Self.forceFreeKey)
+    }
+
     public func setForceFree(_ enabled: Bool) {
-        self.applyStatus(enabled ? .free : .free)
+        UserDefaults.standard.set(enabled, forKey: Self.forceFreeKey)
+        self.applyStatus(enabled ? .free : self.isInFreeTrial ? .freeTrial : .free)
     }
 
     public func setPurchased(_ purchased: Bool) {
