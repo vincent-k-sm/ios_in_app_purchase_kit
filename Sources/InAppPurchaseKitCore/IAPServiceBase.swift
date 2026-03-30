@@ -2,15 +2,15 @@
 //  IAPServiceBase.swift
 //  InAppPurchaseKitCore
 //
-//  외부에 노출되는 유일한 접근점.
-//  각 프로젝트에서 상속하여 initSDK()에서 configure 호출.
+//  외부 접근: IAPService.status / IAPService.admin / IAPService.features
+//  IAPService.shared는 internal.
 //
 
 import Foundation
 import StoreKit
 import UIKit
 
-open class IAPServiceBase {
+open class IAPServiceBase: IAPStatusProvider, IAPAdminProvider {
 
     public init() { }
 
@@ -41,18 +41,14 @@ open class IAPServiceBase {
     public static let didExpirePurchaseNotification = IAPManager.didExpirePurchaseNotification
     public static let needPresentPurchaseSceneNotification = IAPManager.needPresentPurchaseSceneNotification
 
-    // MARK: - 구독 상태
-
-    public var status: PurchaseStatus {
-        return IAPManager.shared.purchaseStatus
-    }
+    // MARK: - IAPStatusProvider
 
     public var isPremium: Bool {
-        return self.status.isPremium
+        return IAPManager.shared.purchaseStatus.isPremium
     }
 
     public var isAdmin: Bool {
-        return self.status == .admin
+        return IAPManager.shared.purchaseStatus == .admin
     }
 
     public var isForceFree: Bool {
@@ -64,7 +60,7 @@ open class IAPServiceBase {
     }
 
     public var statusLabel: String {
-        switch self.status {
+        switch IAPManager.shared.purchaseStatus {
             case .forceFree: return "forceFree"
             case .free: return "unsubscribed"
             case .freeTrial: return "trial"
@@ -73,14 +69,14 @@ open class IAPServiceBase {
         }
     }
 
-    // MARK: - 상태 변경
+    // MARK: - IAPAdminProvider
 
     @discardableResult
-    public func verifyAdminCode(_ code: String) -> Bool {
+    public func verify(code: String) -> Bool {
         return IAPManager.shared.verifyAdminCode(code)
     }
 
-    public func disableAdmin() {
+    public func disable() {
         IAPManager.shared.disableAdmin()
     }
 
@@ -97,7 +93,10 @@ open class IAPServiceBase {
         return IAPManager.shared.startFreeTrialIfNeeded()
     }
 
-    // MARK: - StoreKit
+    @discardableResult
+    public func checkPurchaseStatus() async -> Bool {
+        return await IAPManager.shared.checkPurchaseStatus()
+    }
 
     public func fetchProducts() async throws -> [Product] {
         return try await IAPManager.shared.fetchProducts()
@@ -110,13 +109,6 @@ open class IAPServiceBase {
     public func restorePurchases() async throws -> Bool {
         return try await IAPManager.shared.restorePurchases()
     }
-
-    @discardableResult
-    public func checkPurchaseStatus() async -> Bool {
-        return await IAPManager.shared.checkPurchaseStatus()
-    }
-
-    // MARK: - UI
 
     public func openManageSubscriptions() {
         IAPManager.shared.openManageSubscriptions()
