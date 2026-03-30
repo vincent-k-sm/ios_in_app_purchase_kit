@@ -18,7 +18,7 @@ open class IAPServiceBase: IAPStatusProvider, IAPAdminProvider {
 
     // MARK: - Configure
 
-    public static var products: [IAPProduct] = []
+    public static var _products: [IAPProduct] = []
 
     public static func configure(
         products: [IAPProduct],
@@ -26,7 +26,7 @@ open class IAPServiceBase: IAPStatusProvider, IAPAdminProvider {
         freeTrialKeychainKey: String? = nil,
         freeTrialDays: Int = 7
     ) {
-        Self.products = products
+        Self._products = products
         IAPManager.configure(
             productIds: products.map { $0.id },
             appGroupIdentifier: appGroupIdentifier,

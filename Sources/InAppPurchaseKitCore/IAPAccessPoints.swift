@@ -51,3 +51,9 @@ public protocol IAPAdminProvider {
     /// 구독 유도 Notification
     func requestPremiumIfNeeded()
 }
+
+public extension IAPAdminProvider {
+    func presentNeedSubscriptionAlert() {
+        self.presentNeedSubscriptionAlert(from: nil)
+    }
+}
