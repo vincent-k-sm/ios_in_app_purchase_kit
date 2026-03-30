@@ -9,9 +9,12 @@ public struct IAPProduct {
     public let period: Period
     public let id: String
 
-    public init(period: Period, id: String) {
+    public var isPopular: Bool
+
+    public init(period: Period, id: String, isPopular: Bool = false) {
         self.period = period
         self.id = id
+        self.isPopular = isPopular
     }
 
     /// App Store Connect에서 설정 가능한 구독/결제 기간

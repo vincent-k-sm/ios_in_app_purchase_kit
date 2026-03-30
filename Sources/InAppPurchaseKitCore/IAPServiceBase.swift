@@ -11,7 +11,6 @@ import StoreKit
 import UIKit
 
 public protocol AvailablePremiumFeatures {
-    var shouldShowWelcome: Bool { get }
 }
 
 open class IAPServiceBase {
