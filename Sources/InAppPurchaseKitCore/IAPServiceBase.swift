@@ -16,23 +16,11 @@ public protocol AvailablePremiumFeatures {
 
 open class IAPServiceBase {
 
-    // MARK: - Singleton (하위 클래스에서 override)
-
-    public static var shared: IAPServiceBase = IAPServiceBase()
-
-    public static var features: AvailablePremiumFeatures? {
-        return Self.shared as? AvailablePremiumFeatures
-    }
-
     public init() { }
 
     deinit { }
 
-    // MARK: - 초기화 (하위 클래스에서 override)
-
-    open class func initSDK() {
-        // 하위 클래스에서 configure() 호출
-    }
+    // MARK: - Configure
 
     public static func configure(
         productIds: [String],
