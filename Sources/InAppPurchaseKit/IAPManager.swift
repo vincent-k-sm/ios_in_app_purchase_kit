@@ -151,16 +151,21 @@ public final class IAPManager {
 
     // MARK: - Public Methods
 
+    /// free/freeTrial 판별 (키체인 기준)
+    private var defaultFreeStatus: PurchaseStatus {
+        return self.isInFreeTrial ? .freeTrial : .free
+    }
+
     @discardableResult
     public func verifyAdminCode(_ code: String) -> Bool {
         let isValid = code.lowercased() == Self.adminString.lowercased()
-        self.applyStatus(isValid ? .admin : self.isInFreeTrial ? .freeTrial : .free)
+        self.applyStatus(isValid ? .admin : self.defaultFreeStatus)
         return isValid
     }
 
     public func disableAdmin() {
         if self.isAdmin {
-            self.applyStatus(self.isInFreeTrial ? .freeTrial : .free)
+            self.applyStatus(self.defaultFreeStatus)
         }
     }
 
@@ -169,11 +174,11 @@ public final class IAPManager {
     }
 
     public func setForceFree(_ enabled: Bool) {
-        self.applyStatus(enabled ? .forceFree : self.isInFreeTrial ? .freeTrial : .free)
+        self.applyStatus(enabled ? .forceFree : self.defaultFreeStatus)
     }
 
     public func setPurchased(_ purchased: Bool) {
-        self.applyStatus(purchased ? .subscribed : .free)
+        self.applyStatus(purchased ? .subscribed : self.defaultFreeStatus)
     }
 
     @discardableResult
@@ -191,7 +196,7 @@ public final class IAPManager {
             self.applyStatus(.subscribed)
         }
         else if self.lastStatus == .subscribed {
-            self.applyStatus(self.isInFreeTrial ? .freeTrial : .free)
+            self.applyStatus(self.defaultFreeStatus)
         }
         return self.isPurchased
     }
