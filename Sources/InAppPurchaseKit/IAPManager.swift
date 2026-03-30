@@ -14,13 +14,14 @@ import UIKit
 // MARK: - PurchaseStatus
 
 public enum PurchaseStatus: Int, Comparable {
+    case forceFree = -1
     case free = 0
     case freeTrial = 1
     case subscribed = 2
     case admin = 99
 
     public var isPremium: Bool {
-        return self != .free
+        return self != .free && self != .forceFree
     }
 
     public static func < (lhs: PurchaseStatus, rhs: PurchaseStatus) -> Bool {
@@ -163,15 +164,12 @@ public final class IAPManager {
         }
     }
 
-    private static let forceFreeKey = "IAPManager.forceFree"
-
     public var isForceFree: Bool {
-        return UserDefaults.standard.bool(forKey: Self.forceFreeKey)
+        return self.lastStatus == .forceFree
     }
 
     public func setForceFree(_ enabled: Bool) {
-        UserDefaults.standard.set(enabled, forKey: Self.forceFreeKey)
-        self.applyStatus(enabled ? .free : self.isInFreeTrial ? .freeTrial : .free)
+        self.applyStatus(enabled ? .forceFree : self.isInFreeTrial ? .freeTrial : .free)
     }
 
     public func setPurchased(_ purchased: Bool) {
