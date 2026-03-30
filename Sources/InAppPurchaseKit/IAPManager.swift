@@ -154,8 +154,17 @@ public final class IAPManager {
 
     // MARK: - Public Methods
 
-    public func setAdminMode(_ enabled: Bool) {
-        self.applyStatus(enabled ? .admin : .free)
+    @discardableResult
+    public func verifyAdminCode(_ code: String) -> Bool {
+        let isValid = code.lowercased() == self.config.adminString.lowercased()
+        self.applyStatus(isValid ? .admin : self.isInFreeTrial ? .freeTrial : .free)
+        return isValid
+    }
+
+    public func disableAdmin() {
+        if self.isAdmin {
+            self.applyStatus(self.isInFreeTrial ? .freeTrial : .free)
+        }
     }
 
     public func setForceFree(_ enabled: Bool) {
