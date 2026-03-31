@@ -52,8 +52,6 @@ public protocol IAPAdminProvider {
     func openManageSubscriptions()
     /// 구독 필요 알림
     func presentNeedSubscriptionAlert(from viewController: UIViewController?)
-    /// 구독 유도 Notification
-    func requestPremiumIfNeeded()
 }
 
 public extension IAPAdminProvider {

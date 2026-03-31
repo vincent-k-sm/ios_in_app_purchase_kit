@@ -71,9 +71,6 @@ final class IAPManager {
 
     // MARK: - Notifications
 
-    static let didCompletePurchaseNotification = Notification.Name("IAPManagerDidCompletePurchase")
-    static let didExpirePurchaseNotification = Notification.Name("IAPManagerDidExpirePurchase")
-    static let needPresentPurchaseSceneNotification = Notification.Name("IAPManagerNeedPresentPurchaseScene")
 
     // MARK: - Status (단일 소스)
 
@@ -269,11 +266,8 @@ final class IAPManager {
         let subscribeAction = UIAlertAction(
             title: I18N.alert_subscription_required_action,
             style: .default,
-            handler: { _ in
-                NotificationCenter.default.post(
-                    name: IAPManager.needPresentPurchaseSceneNotification,
-                    object: nil
-                )
+            handler: { [weak self] _ in
+                self?.openManageSubscriptions()
             }
         )
 
@@ -312,11 +306,6 @@ final class IAPManager {
         self.lastStatus = newStatus
         UserDefaults.standard.set(newStatus.rawValue, forKey: IAPManager.statusKey)
         self.syncPurchaseStatusToAppGroup()
-        guard oldStatus.isPremium != newStatus.isPremium else { return }
-        let name = newStatus.isPremium
-            ? IAPManager.didCompletePurchaseNotification
-            : IAPManager.didExpirePurchaseNotification
-        NotificationCenter.default.post(name: name, object: nil)
     }
 
     private func restoreStatus() -> PurchaseStatus {
@@ -379,8 +368,3 @@ final class IAPManager {
 
 // MARK: - Notification Name Extension
 
-public extension Notification.Name {
-    static let didCompletePurchase = IAPManager.didCompletePurchaseNotification
-    static let didExpirePurchase = IAPManager.didExpirePurchaseNotification
-    static let needPresentPurchaseScene = IAPManager.needPresentPurchaseSceneNotification
-}

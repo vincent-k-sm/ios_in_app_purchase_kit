@@ -38,10 +38,6 @@ open class IAPServiceBase: IAPStatusProvider, IAPAdminProvider {
 
     // MARK: - Notifications
 
-    public static let didCompletePurchaseNotification = IAPManager.didCompletePurchaseNotification
-    public static let didExpirePurchaseNotification = IAPManager.didExpirePurchaseNotification
-    public static let needPresentPurchaseSceneNotification = IAPManager.needPresentPurchaseSceneNotification
-
     // MARK: - IAPStatusProvider
 
     public var isPremium: Bool {
@@ -127,11 +123,4 @@ open class IAPServiceBase: IAPStatusProvider, IAPAdminProvider {
         IAPManager.shared.presentNeedSubscriptionAlert(from: viewController)
     }
 
-    public func requestPremiumIfNeeded() {
-        guard !self.isPremium else { return }
-        NotificationCenter.default.post(
-            name: Self.needPresentPurchaseSceneNotification,
-            object: nil
-        )
-    }
 }
