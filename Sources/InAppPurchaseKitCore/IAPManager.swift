@@ -7,6 +7,7 @@
 //  UserDefaults에는 rawValue만 저장/복원.
 //
 
+import Combine
 import Foundation
 import StoreKit
 import UIKit
@@ -78,7 +79,7 @@ final class IAPManager {
 
     private static let statusKey = "IAPManager.lastStatus"
 
-    private(set) var lastStatus: PurchaseStatus = .free
+    @Published private(set) var lastStatus: PurchaseStatus = .free
 
     var purchaseStatus: PurchaseStatus {
         if self.lastStatus == .freeTrial && !self.isInFreeTrial {

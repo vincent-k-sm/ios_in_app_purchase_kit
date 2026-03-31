@@ -6,6 +6,7 @@
 //  IAPService.shared는 internal.
 //
 
+import Combine
 import Foundation
 import StoreKit
 import UIKit
@@ -19,6 +20,8 @@ public protocol IAPStatusProvider {
     var hasUsedFreeTrial: Bool { get }
     var statusLabel: String { get }
     var products: [IAPProduct] { get }
+    /// 구독 상태 변경 Publisher
+    var statusPublisher: AnyPublisher<PurchaseStatus, Never> { get }
 }
 
 // MARK: - 상태 변경 + StoreKit 액션

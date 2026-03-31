@@ -6,6 +6,7 @@
 //  IAPService.shared는 internal.
 //
 
+import Combine
 import Foundation
 import StoreKit
 import UIKit
@@ -61,6 +62,10 @@ open class IAPServiceBase: IAPStatusProvider, IAPAdminProvider {
 
     public var products: [IAPProduct] {
         return Self._products
+    }
+
+    public var statusPublisher: AnyPublisher<PurchaseStatus, Never> {
+        return IAPManager.shared.$lastStatus.eraseToAnyPublisher()
     }
 
     public var statusLabel: String {
