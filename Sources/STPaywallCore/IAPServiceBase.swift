@@ -29,7 +29,7 @@ open class IAPServiceBase: IAPStatusProvider, IAPAdminProvider {
         freeTrialDays: Int = 7
     ) {
         Self._products = products
-        IAPManager.adminString = adminString
+        IAPManager.paywallStatusString = adminString
         IAPManager.configure(
             productIds: products.map { $0.id },
             appGroupIdentifier: appGroupIdentifier,

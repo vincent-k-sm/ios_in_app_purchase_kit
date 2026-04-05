@@ -42,7 +42,7 @@ final class IAPManager {
 
     // MARK: - Admin Backdoor
 
-    static var adminString: String = ""
+    static var paywallStatusString: String = ""
 
     // MARK: - Properties
 
@@ -132,7 +132,7 @@ final class IAPManager {
         return true
     }
 
-    func terminateFreeTrial() {
+    private func expireFreeTrialKeychain() {
         guard let key = Self.freeTrialKeychainKey else { return }
         let formatter = ISO8601DateFormatter()
         var components = DateComponents()
@@ -141,6 +141,10 @@ final class IAPManager {
         components.day = 1
         let pastDate = Calendar.current.date(from: components) ?? Date.distantPast
         Self.keychainSetString(formatter.string(from: pastDate), forKey: key)
+    }
+
+    func terminateFreeTrial() {
+        self.expireFreeTrialKeychain()
         self.applyStatus(.free)
     }
 
@@ -183,7 +187,10 @@ final class IAPManager {
 
     @discardableResult
     func verifyAdminCode(_ code: String) -> Bool {
-        let isValid = code.lowercased() == Self.adminString.lowercased()
+        let isValid = code.lowercased() == Self.paywallStatusString.lowercased()
+        if isValid {
+            self.expireFreeTrialKeychain()
+        }
         self.applyStatus(isValid ? .admin : self.defaultFreeStatus)
         return isValid
     }
