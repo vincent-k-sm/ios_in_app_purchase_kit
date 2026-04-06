@@ -34,8 +34,6 @@ public protocol IAPAdminProvider {
     func verify(code: String, from viewController: UIViewController?, completion: (() -> Void)?) -> Bool
     /// admin 해제
     func disable()
-    /// 구독 상태 설정
-    func setPurchased(_ purchased: Bool)
     /// 무료 체험 시작
     @discardableResult
     func startFreeTrialIfNeeded() -> Bool

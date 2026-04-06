@@ -43,15 +43,15 @@ open class IAPServiceBase: IAPStatusProvider, IAPAdminProvider {
     // MARK: - IAPStatusProvider
 
     public var currentStatus: PurchaseStatus {
-        return IAPManager.shared.purchaseStatus
+        return IAPManager.shared.lastStatus
     }
 
     public var isPremium: Bool {
-        return IAPManager.shared.purchaseStatus.isPremium
+        return IAPManager.shared.lastStatus.isPremium
     }
 
     public var isAdmin: Bool {
-        return IAPManager.shared.purchaseStatus == .admin
+        return IAPManager.shared.lastStatus == .admin
     }
 
     public var hasUsedFreeTrial: Bool {
@@ -71,7 +71,7 @@ open class IAPServiceBase: IAPStatusProvider, IAPAdminProvider {
     }
 
     public var statusLabel: String {
-        switch IAPManager.shared.purchaseStatus {
+        switch IAPManager.shared.lastStatus {
             case .free: return "unsubscribed"
             case .freeTrial: return "trial"
             case .subscribed: return "subscribed"
@@ -88,10 +88,6 @@ open class IAPServiceBase: IAPStatusProvider, IAPAdminProvider {
 
     public func disable() {
         IAPManager.shared.disableAdmin()
-    }
-
-    public func setPurchased(_ purchased: Bool) {
-        IAPManager.shared.setPurchased(purchased)
     }
 
     @discardableResult

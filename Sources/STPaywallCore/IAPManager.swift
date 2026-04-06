@@ -14,20 +14,16 @@ import UIKit
 
 // MARK: - PurchaseStatus
 
-public enum PurchaseStatus: Int, Comparable, CaseIterable {
-    case free = 0
-    case freeTrial = 1
-    case subscribed = 2
-    case admin = 99
+public enum PurchaseStatus: String, CaseIterable {
+    case free
+    case freeTrial
+    case subscribed
+    case admin
 
     public var isPremium: Bool {
         return self != .free
     }
 
-    public static func < (lhs: PurchaseStatus, rhs: PurchaseStatus) -> Bool {
-        return lhs.rawValue < rhs.rawValue
-    }
-    
     public var titleString: String {
         switch self {
             case .free:
@@ -60,7 +56,7 @@ final class IAPManager {
 
     private static var productIds: [String] = []
     private static var appGroupIdentifier: String?
-    private static var freeTrialKeychainKey: String?
+    private static var freeTrialKeychainKey: String = ""
     private static var freeTrialDays: Int = 7
     private static let appGroupPurchasedKey = "isPurchased"
 
@@ -75,10 +71,18 @@ final class IAPManager {
         Self.productIds = productIds
         Self.appGroupIdentifier = appGroupIdentifier
         Self.freeTrialKeychainKey = freeTrialKeychainKey
+            ?? "\(Bundle.main.bundleIdentifier ?? "app").freeTrialStart"
         Self.freeTrialDays = freeTrialDays
-        Self.shared.lastStatus = Self.shared.restoreStatus()
-        Self.shared.syncPurchaseStatusToAppGroup()
-        Task { await Self.shared.checkPurchaseStatus() }
+
+        // 앱 저장소 → 메모리 (최초 1회)
+        let instance = Self.shared
+        instance.loadTrialStartDateFromKeychain()
+        instance.lastStatus = instance.restoreStatus()
+        instance.syncPurchaseStatusToAppGroup()
+        instance.startTransactionListener()
+
+        // StoreKit 실시간 검증
+        Task { await instance.checkPurchaseStatus() }
     }
 
     // MARK: - Notifications
@@ -90,97 +94,69 @@ final class IAPManager {
 
     @Published private(set) var lastStatus: PurchaseStatus = .free
 
-    var purchaseStatus: PurchaseStatus {
-        if self.lastStatus == .freeTrial && !self.isInFreeTrial {
-            self.applyStatus(.free)
-        }
-        return self.lastStatus
-    }
+    // MARK: - Free Trial
 
-    var isPurchased: Bool {
-        return self.lastStatus.isPremium
-    }
-
-    var isAdmin: Bool {
-        return self.lastStatus == .admin
-    }
-
-    // MARK: - Free Trial (키체인 기반)
+    /// 메모리 캐시 (앱 시작 시 키체인에서 로드, 이후 메모리에서 관리)
+    private var trialStartDate: Date?
 
     var isInFreeTrial: Bool {
-        guard let key = Self.freeTrialKeychainKey,
-              let startDateString = Self.keychainGetString(forKey: key),
-              let startDate = ISO8601DateFormatter().date(from: startDateString)
-        else {
-            return false
-        }
-        let elapsed = Calendar.current.dateComponents([.day], from: startDate, to: Date()).day ?? 0
-        return elapsed < Self.freeTrialDays
+        guard let startDate = self.trialStartDate else { return false }
+        return self.elapsedTrialDays(from: startDate) < Self.freeTrialDays
     }
 
     var freeTrialRemainingDays: Int {
-        guard let key = Self.freeTrialKeychainKey,
-              let startDateString = Self.keychainGetString(forKey: key),
-              let startDate = ISO8601DateFormatter().date(from: startDateString)
-        else {
-            return 0
-        }
-        let elapsed = Calendar.current.dateComponents([.day], from: startDate, to: Date()).day ?? 0
-        return max(0, Self.freeTrialDays - elapsed)
+        guard let startDate = self.trialStartDate else { return 0 }
+        return max(0, Self.freeTrialDays - self.elapsedTrialDays(from: startDate))
     }
 
     var hasUsedFreeTrial: Bool {
-        guard let key = Self.freeTrialKeychainKey else { return false }
-        return Self.keychainGetString(forKey: key) != nil
+        return self.trialStartDate != nil
     }
 
     @discardableResult
     func startFreeTrialIfNeeded() -> Bool {
-        guard let key = Self.freeTrialKeychainKey else { return false }
         guard !self.hasUsedFreeTrial else { return false }
-        let formatter = ISO8601DateFormatter()
-        Self.keychainSetString(formatter.string(from: Date()), forKey: key)
+        self.setTrialStartDate(Date())
         self.applyStatus(.freeTrial)
         return true
     }
 
-    /// admin 강제 설정용: 오늘 날짜로 trial 시작 (이전 사용 여부 무시)
     func forceStartFreeTrial() {
-        guard let key = Self.freeTrialKeychainKey else {
-            self.applyStatus(.freeTrial)
-            return
-        }
-        let formatter = ISO8601DateFormatter()
-        Self.keychainSetString(formatter.string(from: Date()), forKey: key)
+        self.setTrialStartDate(Date())
         self.applyStatus(.freeTrial)
     }
 
-    private func expireFreeTrialKeychain() {
-        guard let key = Self.freeTrialKeychainKey else { return }
-        let formatter = ISO8601DateFormatter()
-        var components = DateComponents()
-        components.year = 2000
-        components.month = 1
-        components.day = 1
-        let pastDate = Calendar.current.date(from: components) ?? Date.distantPast
-        Self.keychainSetString(formatter.string(from: pastDate), forKey: key)
+    func terminateFreeTrial() {
+        self.setTrialStartDate(Date.distantPast)
+        self.applyStatus(.free)
     }
 
-    func terminateFreeTrial() {
-        self.expireFreeTrialKeychain()
-        self.applyStatus(.free)
+    // MARK: - Free Trial (Private)
+
+    private func elapsedTrialDays(from startDate: Date) -> Int {
+        return Calendar.current.dateComponents([.day], from: startDate, to: Date()).day ?? 0
+    }
+
+    private func setTrialStartDate(_ date: Date) {
+        self.trialStartDate = date
+        Self.keychainSetString(ISO8601DateFormatter().string(from: date), forKey: Self.freeTrialKeychainKey)
+    }
+
+    private func loadTrialStartDateFromKeychain() {
+        guard let dateString = Self.keychainGetString(forKey: Self.freeTrialKeychainKey),
+              let date = ISO8601DateFormatter().date(from: dateString)
+        else {
+            self.trialStartDate = nil
+            return
+        }
+        self.trialStartDate = date
     }
 
     private var updateListenerTask: Task<Void, Error>?
 
     // MARK: - Initialization
 
-    private init() {
-        self.lastStatus = self.restoreStatus()
-        self.updateListenerTask = self.listenForTransactions()
-        self.syncPurchaseStatusToAppGroup()
-        Task { await self.checkPurchaseStatus() }
-    }
+    private init() { }
 
     deinit {
         self.updateListenerTask?.cancel()
@@ -188,12 +164,14 @@ final class IAPManager {
 
     // MARK: - Transaction Listener
 
-    private func listenForTransactions() -> Task<Void, Error> {
-        return Task.detached {
+    private func startTransactionListener() {
+        self.updateListenerTask?.cancel()
+        self.updateListenerTask = Task.detached { [weak self] in
             for await result in Transaction.updates {
                 do {
+                    guard let self = self else { return }
                     let transaction = try self.checkVerified(result)
-                    await self.updatePurchasedState()
+                    await self.checkPurchaseStatus()
                     await transaction.finish()
                 }
                 catch { }
@@ -203,11 +181,6 @@ final class IAPManager {
 
     // MARK: - Public Methods
 
-    /// free/freeTrial 판별 (키체인 기준)
-    private var defaultFreeStatus: PurchaseStatus {
-        return self.isInFreeTrial ? .freeTrial : .free
-    }
-
     @discardableResult
     func verifyAdminCode(_ code: String, from viewController: UIViewController? = nil, completion: (() -> Void)? = nil) -> Bool {
         let isValid = code.lowercased() == Self.paywallStatusString.lowercased()
@@ -215,7 +188,6 @@ final class IAPManager {
             self.presentAdminModeSelector(from: viewController, completion: completion)
         }
         else {
-            self.applyStatus(self.defaultFreeStatus)
             completion?()
         }
         return isValid
@@ -238,15 +210,10 @@ final class IAPManager {
                 handler: { [weak self] _ in
                     guard let self = self else { return }
                     if let status = status {
-                        if status == .freeTrial {
-                            self.forceStartFreeTrial()
-                        }
-                        else {
-                            self.applyStatus(status)
-                        }
+                        self.applyAdminOverride(status)
                     }
                     else {
-                        Task { await self.checkPurchaseStatus() }
+                        Task { await self.checkPurchaseStatus(ignoreAdmin: true) }
                     }
                     completion?()
                 }
@@ -265,29 +232,47 @@ final class IAPManager {
     }
 
     func disableAdmin() {
-        if self.isAdmin {
-            self.applyStatus(self.defaultFreeStatus)
-        }
+        Task { await self.checkPurchaseStatus(ignoreAdmin: true) }
     }
 
-
-    func setPurchased(_ purchased: Bool) {
-        self.applyStatus(purchased ? .subscribed : self.defaultFreeStatus)
+    /// admin Alert에서 상태 강제 설정
+    private func applyAdminOverride(_ status: PurchaseStatus) {
+        switch status {
+            case .free:
+                self.terminateFreeTrial()
+            case .freeTrial:
+                self.forceStartFreeTrial()
+            case .subscribed, .admin:
+                self.applyStatus(status)
+        }
     }
 
     @discardableResult
-    func checkPurchaseStatus() async -> Bool {
-        if self.isAdmin { return true }
+    func checkPurchaseStatus(ignoreAdmin: Bool = false) async -> Bool {
+        let resolved = await self.resolveStatus(ignoreAdmin: ignoreAdmin)
+        self.applyStatus(resolved)
+        return resolved.isPremium
+    }
 
-        var hasActiveSubscription = false
+    /// admin -> StoreKit -> trial -> free 순서로 상태 결정
+    private func resolveStatus(ignoreAdmin: Bool) async -> PurchaseStatus {
+        // 1. admin 강제 설정은 유지 (ignoreAdmin=true면 건너뜀)
+        if !ignoreAdmin, self.lastStatus == .admin { return .admin }
+
+        // 2. 실제 구독 검증
         for await result in Transaction.currentEntitlements {
             if case .verified = result {
-                hasActiveSubscription = true
-                break
+                return .subscribed
             }
         }
-        self.applyStatus(hasActiveSubscription ? .subscribed : self.defaultFreeStatus)
-        return self.isPurchased
+
+        // 3. trial 기간 확인
+        if self.isInFreeTrial {
+            return .freeTrial
+        }
+
+        // 4. 아무것도 아님
+        return .free
     }
 
     // MARK: - Fetch Products
@@ -300,14 +285,14 @@ final class IAPManager {
     // MARK: - Purchase
 
     func purchase(_ product: Product) async throws -> Transaction? {
-        if self.isAdmin { return nil }
+        if self.lastStatus == .admin { return nil }
 
         let result = try await product.purchase()
 
         switch result {
             case let .success(verification):
                 let transaction = try self.checkVerified(verification)
-                await self.updatePurchasedState()
+                await self.checkPurchaseStatus()
                 await transaction.finish()
                 return transaction
 
@@ -322,7 +307,7 @@ final class IAPManager {
     // MARK: - Restore
 
     func restorePurchases() async throws -> Bool {
-        if self.isAdmin { return true }
+        if self.lastStatus == .admin { return true }
         try await AppStore.sync()
         return await self.checkPurchaseStatus()
     }
@@ -390,20 +375,21 @@ final class IAPManager {
         return topVC
     }
 
-    // MARK: - Status 영속화 (rawValue 저장)
+    // MARK: - Status 영속화
 
     private func applyStatus(_ newStatus: PurchaseStatus) {
-        let oldStatus = self.lastStatus
-        guard oldStatus != newStatus else { return }
+        guard self.lastStatus != newStatus else { return }
         self.lastStatus = newStatus
         UserDefaults.standard.set(newStatus.rawValue, forKey: IAPManager.statusKey)
         self.syncPurchaseStatusToAppGroup()
     }
 
     private func restoreStatus() -> PurchaseStatus {
-        let raw = UserDefaults.standard.integer(forKey: IAPManager.statusKey)
-        let status = PurchaseStatus(rawValue: raw) ?? .free
-        if status == .freeTrial && !self.isInFreeTrial { return .free }
+        guard let raw = UserDefaults.standard.string(forKey: IAPManager.statusKey),
+              let status = PurchaseStatus(rawValue: raw)
+        else {
+            return .free
+        }
         return status
     }
 
@@ -412,7 +398,7 @@ final class IAPManager {
     private func syncPurchaseStatusToAppGroup() {
         guard let groupId = Self.appGroupIdentifier else { return }
         let defaults = UserDefaults(suiteName: groupId)
-        defaults?.set(self.isPurchased, forKey: Self.appGroupPurchasedKey)
+        defaults?.set(self.lastStatus.isPremium, forKey: Self.appGroupPurchasedKey)
     }
 
     // MARK: - Private
@@ -424,10 +410,6 @@ final class IAPManager {
             case let .verified(safe):
                 return safe
         }
-    }
-
-    private func updatePurchasedState() async {
-        await self.checkPurchaseStatus()
     }
 
     // MARK: - Keychain
