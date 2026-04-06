@@ -128,8 +128,17 @@ open class STPaywallListViewController: UIViewController {
 
     /// 구독 상태 텍스트. 기본: 프리미엄이면 "구독 중".
     open func subscriptionStatusText() -> String? {
-        guard self.serviceBase.isPremium else { return nil }
-        return I18N.list_status_subscribed
+        switch self.serviceBase.currentStatus {
+            case .free:
+                return nil
+            case .freeTrial:
+                let days = self.serviceBase.freeTrialRemainingDays
+                return "\(I18N.list_status_trial) (\(days)\(I18N.list_status_trial_days_remaining))"
+            case .subscribed:
+                return I18N.list_status_subscribed
+            case .admin:
+                return I18N.list_status_admin
+        }
     }
 
     // MARK: - Public Methods

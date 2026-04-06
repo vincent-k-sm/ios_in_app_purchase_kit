@@ -14,6 +14,9 @@
 "stpaywall_list_msg_restore_success" = "Restore completed";
 "stpaywall_list_msg_restore_failed" = "No purchases to restore";
 "stpaywall_list_status_subscribed" = "Subscribed";
+"stpaywall_list_status_trial" = "Free Trial";
+"stpaywall_list_status_trial_days_remaining" = " days left";
+"stpaywall_list_status_admin" = "Admin";
 
 // MARK: - Detail Scene
 "stpaywall_detail_price_format" = "%@ / %@";

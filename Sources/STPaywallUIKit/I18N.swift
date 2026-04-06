@@ -26,6 +26,9 @@ struct I18N {
     static let list_msg_restore_success = "stpaywall_list_msg_restore_success".localized
     static let list_msg_restore_failed = "stpaywall_list_msg_restore_failed".localized
     static let list_status_subscribed = "stpaywall_list_status_subscribed".localized
+    static let list_status_trial = "stpaywall_list_status_trial".localized
+    static let list_status_trial_days_remaining = "stpaywall_list_status_trial_days_remaining".localized
+    static let list_status_admin = "stpaywall_list_status_admin".localized
 
     // MARK: - Detail Scene
 

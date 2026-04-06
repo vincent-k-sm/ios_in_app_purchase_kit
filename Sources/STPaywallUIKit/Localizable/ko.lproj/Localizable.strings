@@ -14,6 +14,9 @@
 "stpaywall_list_msg_restore_success" = "복원이 완료되었습니다";
 "stpaywall_list_msg_restore_failed" = "복원할 구매 내역이 없습니다";
 "stpaywall_list_status_subscribed" = "구독 중";
+"stpaywall_list_status_trial" = "무료 체험 중";
+"stpaywall_list_status_trial_days_remaining" = "일 남음";
+"stpaywall_list_status_admin" = "관리자";
 
 // MARK: - Detail Scene
 "stpaywall_detail_price_format" = "%@ / %@";
