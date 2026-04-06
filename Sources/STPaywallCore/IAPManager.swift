@@ -211,11 +211,14 @@ final class IAPManager {
                     guard let self = self else { return }
                     if let status = status {
                         self.applyAdminOverride(status)
+                        completion?()
                     }
                     else {
-                        Task { await self.checkPurchaseStatus(ignoreAdmin: true) }
+                        Task {
+                            await self.checkPurchaseStatus(ignoreAdmin: true)
+                            await MainActor.run { completion?() }
+                        }
                     }
-                    completion?()
                 }
             )
             alert.addAction(action)
@@ -258,9 +261,7 @@ final class IAPManager {
         return resolved.isPremium
     }
 
-    /// admin -> StoreKit -> trial -> free 순서로 상태 결정
-    private func resolveStatus(ignoreAdmin: Bool) async -> PurchaseStatus {
-        // 1. admin 강제 설정은 유지 (ignoreAdmin=true면 건너뜀)
+    private func resolveStatus(ignoreAdmin: Bool = false) async -> PurchaseStatus {
         if !ignoreAdmin, self.lastStatus == .admin { return .admin }
 
         // 2. 실제 구독 검증
