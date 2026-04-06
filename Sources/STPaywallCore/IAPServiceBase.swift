@@ -99,6 +99,11 @@ open class IAPServiceBase: IAPStatusProvider, IAPAdminProvider {
         IAPManager.shared.terminateFreeTrial()
     }
 
+    /// 구매 완료 후 구독 상태 즉시 반영
+    public func applySubscribed() {
+        IAPManager.shared.setSubscribed()
+    }
+
     @discardableResult
     public func checkPurchaseStatus() async -> Bool {
         return await IAPManager.shared.checkPurchaseStatus()

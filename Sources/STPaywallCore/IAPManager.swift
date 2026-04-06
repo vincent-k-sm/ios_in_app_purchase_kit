@@ -231,6 +231,10 @@ final class IAPManager {
         }
     }
 
+    func setSubscribed() {
+        self.applyStatus(.subscribed)
+    }
+
     func disableAdmin() {
         Task { await self.checkPurchaseStatus(ignoreAdmin: true) }
     }
