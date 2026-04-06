@@ -18,6 +18,10 @@ struct I18N {
     static let list_menu_subscription_info = "stpaywall_list_menu_subscription_info".localized
     static let list_menu_restore = "stpaywall_list_menu_restore".localized
     static let list_menu_manage_subscription = "stpaywall_list_menu_manage_subscription".localized
+    static let list_menu_terminate_trial = "stpaywall_list_menu_terminate_trial".localized
+    static let list_alert_terminate_title = "stpaywall_list_alert_terminate_title".localized
+    static let list_alert_terminate_msg = "stpaywall_list_alert_terminate_msg".localized
+    static let list_action_terminate = "stpaywall_list_action_terminate".localized
 
     static let list_msg_restore_success = "stpaywall_list_msg_restore_success".localized
     static let list_msg_restore_failed = "stpaywall_list_msg_restore_failed".localized

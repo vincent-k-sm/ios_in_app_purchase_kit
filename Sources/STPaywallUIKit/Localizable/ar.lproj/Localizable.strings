@@ -7,6 +7,10 @@
 "stpaywall_list_menu_subscription_info" = "Subscription Info";
 "stpaywall_list_menu_restore" = "Restore Purchase";
 "stpaywall_list_menu_manage_subscription" = "Manage Subscription";
+"stpaywall_list_menu_terminate_trial" = "End Free Trial";
+"stpaywall_list_alert_terminate_title" = "End Free Trial";
+"stpaywall_list_alert_terminate_msg" = "Are you sure you want to end your free trial?\nThis cannot be undone.";
+"stpaywall_list_action_terminate" = "End Trial";
 "stpaywall_list_msg_restore_success" = "Restore completed";
 "stpaywall_list_msg_restore_failed" = "No purchases to restore";
 "stpaywall_list_status_subscribed" = "Subscribed";

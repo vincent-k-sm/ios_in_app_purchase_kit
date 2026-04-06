@@ -7,6 +7,10 @@
 "stpaywall_list_menu_subscription_info" = "구독 정보";
 "stpaywall_list_menu_restore" = "구매 복원";
 "stpaywall_list_menu_manage_subscription" = "구독 관리";
+"stpaywall_list_menu_terminate_trial" = "무료 체험 종료";
+"stpaywall_list_alert_terminate_title" = "무료 체험 종료";
+"stpaywall_list_alert_terminate_msg" = "무료 체험을 종료하시겠습니까?\n종료 후에는 다시 시작할 수 없습니다.";
+"stpaywall_list_action_terminate" = "종료";
 "stpaywall_list_msg_restore_success" = "복원이 완료되었습니다";
 "stpaywall_list_msg_restore_failed" = "복원할 구매 내역이 없습니다";
 "stpaywall_list_status_subscribed" = "구독 중";

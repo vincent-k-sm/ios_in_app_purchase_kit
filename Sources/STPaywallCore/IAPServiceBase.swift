@@ -42,16 +42,16 @@ open class IAPServiceBase: IAPStatusProvider, IAPAdminProvider {
 
     // MARK: - IAPStatusProvider
 
+    public var currentStatus: PurchaseStatus {
+        return IAPManager.shared.purchaseStatus
+    }
+
     public var isPremium: Bool {
         return IAPManager.shared.purchaseStatus.isPremium
     }
 
     public var isAdmin: Bool {
         return IAPManager.shared.purchaseStatus == .admin
-    }
-
-    public var isForceFree: Bool {
-        return IAPManager.shared.isForceFree
     }
 
     public var hasUsedFreeTrial: Bool {
@@ -72,7 +72,6 @@ open class IAPServiceBase: IAPStatusProvider, IAPAdminProvider {
 
     public var statusLabel: String {
         switch IAPManager.shared.purchaseStatus {
-            case .forceFree: return "forceFree"
             case .free: return "unsubscribed"
             case .freeTrial: return "trial"
             case .subscribed: return "subscribed"
@@ -83,16 +82,12 @@ open class IAPServiceBase: IAPStatusProvider, IAPAdminProvider {
     // MARK: - IAPAdminProvider
 
     @discardableResult
-    public func verify(code: String) -> Bool {
-        return IAPManager.shared.verifyAdminCode(code)
+    public func verify(code: String, from viewController: UIViewController? = nil, completion: (() -> Void)? = nil) -> Bool {
+        return IAPManager.shared.verifyAdminCode(code, from: viewController, completion: completion)
     }
 
     public func disable() {
         IAPManager.shared.disableAdmin()
-    }
-
-    public func setForceFree(_ enabled: Bool) {
-        IAPManager.shared.setForceFree(enabled)
     }
 
     public func setPurchased(_ purchased: Bool) {

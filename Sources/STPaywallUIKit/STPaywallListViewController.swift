@@ -30,7 +30,7 @@ open class STPaywallListViewController: UIViewController {
     // MARK: - Properties
 
     public let configuration: STPaywallConfiguration
-    private var subscriptionItems: [SubscriptionItem] = SubscriptionItem.allCases
+    private var subscriptionItems: [SubscriptionItem] = [.subscriptionInfo, .restore, .manageSubscription]
     private var cachedAdditionalSections: [STPaywallSection] = []
     private var cancellables = Set<AnyCancellable>()
     private var adminTapView: UIView?
@@ -143,8 +143,32 @@ open class STPaywallListViewController: UIViewController {
     // MARK: - Private Methods
 
     private func reloadAllSections() {
+        self.rebuildSubscriptionItems()
         self.cachedAdditionalSections = self.additionalSections()
         self.tableView.reloadData()
+    }
+
+    private func rebuildSubscriptionItems() {
+        var items: [SubscriptionItem] = [.subscriptionInfo, .restore, .manageSubscription]
+        if self.serviceBase.currentStatus == .freeTrial {
+            items.append(.terminateFreeTrial)
+        }
+        self.subscriptionItems = items
+    }
+
+    private func confirmTerminateFreeTrial() {
+        let alert = UIAlertController(
+            title: I18N.list_alert_terminate_title,
+            message: I18N.list_alert_terminate_msg,
+            preferredStyle: .alert
+        )
+        alert.addAction(UIAlertAction(title: I18N.common_cancel, style: .cancel))
+        alert.addAction(UIAlertAction(title: I18N.list_action_terminate, style: .destructive, handler: { [weak self] _ in
+            guard let self = self else { return }
+            self.serviceBase.terminateFreeTrial()
+            self.reloadAllSections()
+        }))
+        self.present(alert, animated: true)
     }
 
     private func restorePurchase() {
@@ -214,7 +238,7 @@ open class STPaywallListViewController: UIViewController {
 
     private func showAdminAlert() {
         let alert = UIAlertController(
-            title: "Admin",
+            title: " ",
             message: nil,
             preferredStyle: .alert
         )
@@ -226,23 +250,22 @@ open class STPaywallListViewController: UIViewController {
             guard let self = self else { return }
             guard let code = alert.textFields?.first?.text?.lowercased() else { return }
 
-            if code == "프리" || code == "free" {
-                let isForceFree = !self.serviceBase.isForceFree
-                self.serviceBase.setForceFree(isForceFree)
-                let message = isForceFree
-                    ? "ForceFree ON"
-                    : "ForceFree OFF"
-                self.showToast(message)
-                self.reloadAllSections()
-                return
-            }
-
-            let isAdmin = self.serviceBase.verify(code: code)
-            let message = isAdmin
-                ? "Admin ON"
-                : "Admin OFF"
-            self.showToast(message)
-            self.reloadAllSections()
+            // 첫 번째 Alert dismiss 완료 후 verify 수행
+            self.dismiss(animated: true, completion: { [weak self] in
+                guard let self = self else { return }
+                let isAdmin = self.serviceBase.verify(
+                    code: code,
+                    from: self,
+                    completion: { [weak self] in
+                        guard let self = self else { return }
+                        self.reloadAllSections()
+                    }
+                )
+                if !isAdmin {
+                    self.showToast("Invalid Code")
+                    self.reloadAllSections()
+                }
+            })
         }))
         self.present(alert, animated: true)
     }
@@ -252,10 +275,11 @@ open class STPaywallListViewController: UIViewController {
 
 extension STPaywallListViewController {
 
-    enum SubscriptionItem: CaseIterable {
+    enum SubscriptionItem {
         case subscriptionInfo
         case restore
         case manageSubscription
+        case terminateFreeTrial
 
         var title: String {
             switch self {
@@ -265,6 +289,8 @@ extension STPaywallListViewController {
                     return I18N.list_menu_restore
                 case .manageSubscription:
                     return I18N.list_menu_manage_subscription
+                case .terminateFreeTrial:
+                    return I18N.list_menu_terminate_trial
             }
         }
 
@@ -276,7 +302,13 @@ extension STPaywallListViewController {
                     return "arrow.clockwise"
                 case .manageSubscription:
                     return "gearshape"
+                case .terminateFreeTrial:
+                    return "xmark.circle"
             }
+        }
+
+        var isDestructive: Bool {
+            return self == .terminateFreeTrial
         }
     }
 }
@@ -379,6 +411,8 @@ extension STPaywallListViewController: UITableViewDelegate {
                     self.restorePurchase()
                 case .manageSubscription:
                     self.openManageSubscription()
+                case .terminateFreeTrial:
+                    self.confirmTerminateFreeTrial()
             }
         }
         else {

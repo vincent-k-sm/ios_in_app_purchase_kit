@@ -14,9 +14,9 @@ import UIKit
 // MARK: - 상태 읽기
 
 public protocol IAPStatusProvider {
+    var currentStatus: PurchaseStatus { get }
     var isPremium: Bool { get }
     var isAdmin: Bool { get }
-    var isForceFree: Bool { get }
     var hasUsedFreeTrial: Bool { get }
     var statusLabel: String { get }
     var products: [IAPProduct] { get }
@@ -31,11 +31,9 @@ public protocol IAPStatusProvider {
 public protocol IAPAdminProvider {
     /// admin 코드 검증 + 상태 변경
     @discardableResult
-    func verify(code: String) -> Bool
+    func verify(code: String, from viewController: UIViewController?, completion: (() -> Void)?) -> Bool
     /// admin 해제
     func disable()
-    /// 강제 무료 모드
-    func setForceFree(_ enabled: Bool)
     /// 구독 상태 설정
     func setPurchased(_ purchased: Bool)
     /// 무료 체험 시작

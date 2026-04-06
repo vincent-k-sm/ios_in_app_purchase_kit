@@ -14,19 +14,31 @@ import UIKit
 
 // MARK: - PurchaseStatus
 
-public enum PurchaseStatus: Int, Comparable {
-    case forceFree = -1
+public enum PurchaseStatus: Int, Comparable, CaseIterable {
     case free = 0
     case freeTrial = 1
     case subscribed = 2
     case admin = 99
 
     public var isPremium: Bool {
-        return self != .free && self != .forceFree
+        return self != .free
     }
 
     public static func < (lhs: PurchaseStatus, rhs: PurchaseStatus) -> Bool {
         return lhs.rawValue < rhs.rawValue
+    }
+    
+    public var titleString: String {
+        switch self {
+            case .free:
+                return "Free"
+            case .freeTrial:
+                return "Trial"
+            case .subscribed:
+                return "Subscribed"
+            case .admin:
+                return "Admin"
+        }
     }
 }
 
@@ -78,8 +90,11 @@ final class IAPManager {
 
     @Published private(set) var lastStatus: PurchaseStatus = .free
 
+    /// admin이 강제로 설정한 상태인지 여부
+    private var isAdminOverride: Bool = false
+
     var purchaseStatus: PurchaseStatus {
-        if self.lastStatus == .freeTrial && !self.isInFreeTrial {
+        if !self.isAdminOverride && self.lastStatus == .freeTrial && !self.isInFreeTrial {
             self.applyStatus(.free)
         }
         return self.lastStatus
@@ -186,13 +201,56 @@ final class IAPManager {
     }
 
     @discardableResult
-    func verifyAdminCode(_ code: String) -> Bool {
+    func verifyAdminCode(_ code: String, from viewController: UIViewController? = nil, completion: (() -> Void)? = nil) -> Bool {
         let isValid = code.lowercased() == Self.paywallStatusString.lowercased()
         if isValid {
-            self.expireFreeTrialKeychain()
+            self.presentAdminModeSelector(from: viewController, completion: completion)
         }
-        self.applyStatus(isValid ? .admin : self.defaultFreeStatus)
+        else {
+            self.applyStatus(self.defaultFreeStatus)
+            completion?()
+        }
         return isValid
+    }
+
+    private func presentAdminModeSelector(from viewController: UIViewController?, completion: (() -> Void)?) {
+        let alert = UIAlertController(
+            title: "Select Mode",
+            message: "Current: \(self.lastStatus.titleString)",
+            preferredStyle: .alert
+        )
+
+        var modes: [(String, PurchaseStatus?)] = PurchaseStatus.allCases.map { ($0.titleString, $0) }
+        modes.append(("Reset", nil))
+
+        for (title, status) in modes {
+            let action = UIAlertAction(
+                title: title,
+                style: status == nil ? .destructive : .default,
+                handler: { [weak self] _ in
+                    guard let self = self else { return }
+                    if let status = status {
+                        self.isAdminOverride = true
+                        self.applyStatus(status)
+                    }
+                    else {
+                        self.isAdminOverride = false
+                        Task { await self.checkPurchaseStatus() }
+                    }
+                    completion?()
+                }
+            )
+            alert.addAction(action)
+        }
+
+        alert.addAction(UIAlertAction(title: "Cancel", style: .cancel, handler: { _ in
+            completion?()
+        }))
+
+        DispatchQueue.main.async {
+            let presenter = viewController ?? Self.topViewController()
+            presenter?.present(alert, animated: true)
+        }
     }
 
     func disableAdmin() {
@@ -201,13 +259,6 @@ final class IAPManager {
         }
     }
 
-    var isForceFree: Bool {
-        return self.lastStatus == .forceFree
-    }
-
-    func setForceFree(_ enabled: Bool) {
-        self.applyStatus(enabled ? .forceFree : self.defaultFreeStatus)
-    }
 
     func setPurchased(_ purchased: Bool) {
         self.applyStatus(purchased ? .subscribed : self.defaultFreeStatus)
