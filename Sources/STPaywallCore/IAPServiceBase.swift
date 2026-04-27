@@ -26,7 +26,9 @@ open class IAPServiceBase: IAPStatusProvider, IAPAdminProvider {
         adminString: String,
         appGroupIdentifier: String? = nil,
         freeTrialKeychainKey: String? = nil,
-        freeTrialDays: Int = 7
+        freeTrialDays: Int = 7,
+        rewardKeychainKey: String? = nil,
+        rewardDuration: TimeInterval = 30 * 60
     ) {
         Self._products = products
         IAPManager.paywallStatusString = adminString
@@ -34,7 +36,9 @@ open class IAPServiceBase: IAPStatusProvider, IAPAdminProvider {
             productIds: products.map { $0.id },
             appGroupIdentifier: appGroupIdentifier,
             freeTrialKeychainKey: freeTrialKeychainKey,
-            freeTrialDays: freeTrialDays
+            freeTrialDays: freeTrialDays,
+            rewardKeychainKey: rewardKeychainKey,
+            rewardDuration: rewardDuration
         )
     }
 
@@ -70,12 +74,17 @@ open class IAPServiceBase: IAPStatusProvider, IAPAdminProvider {
         return IAPManager.shared.freeTrialRemainingDays
     }
 
+    public var rewardRemainingSeconds: TimeInterval {
+        return IAPManager.shared.rewardRemainingSeconds
+    }
+
     public var statusLabel: String {
         switch IAPManager.shared.lastStatus {
             case .free: return "unsubscribed"
             case .freeTrial: return "trial"
             case .subscribed: return "subscribed"
             case .admin: return "admin"
+            case .rewardActive: return "reward"
         }
     }
 
@@ -97,6 +106,10 @@ open class IAPServiceBase: IAPStatusProvider, IAPAdminProvider {
 
     public func terminateFreeTrial() {
         IAPManager.shared.terminateFreeTrial()
+    }
+
+    public func grantReward() {
+        IAPManager.shared.grantReward()
     }
 
     /// 구매 완료 후 구독 상태 즉시 반영

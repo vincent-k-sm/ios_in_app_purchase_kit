@@ -24,6 +24,8 @@ public protocol IAPStatusProvider {
     var statusPublisher: AnyPublisher<PurchaseStatus, Never> { get }
     /// 무료 체험 남은 일수 (체험 중이 아니면 0)
     var freeTrialRemainingDays: Int { get }
+    /// 보상 활성 남은 초 (보상 중이 아니면 0)
+    var rewardRemainingSeconds: TimeInterval { get }
 }
 
 // MARK: - 상태 변경 + StoreKit 액션
@@ -52,6 +54,8 @@ public protocol IAPAdminProvider {
     func openManageSubscriptions()
     /// 구독 필요 알림
     func presentNeedSubscriptionAlert(from viewController: UIViewController?)
+    /// 보상형 광고 시청 후 30분 프리미엄 활성화
+    func grantReward()
 }
 
 public extension IAPAdminProvider {

@@ -138,6 +138,8 @@ open class STPaywallListViewController: UIViewController {
                 return I18N.list_status_subscribed
             case .admin:
                 return I18N.list_status_admin
+            case .rewardActive:
+                return I18N.list_status_subscribed
         }
     }
 

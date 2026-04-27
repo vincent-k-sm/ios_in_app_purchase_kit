@@ -19,6 +19,7 @@ public enum PurchaseStatus: String, CaseIterable {
     case freeTrial
     case subscribed
     case admin
+    case rewardActive
 
     public var isPremium: Bool {
         return self != .free
@@ -34,6 +35,8 @@ public enum PurchaseStatus: String, CaseIterable {
                 return "Subscribed"
             case .admin:
                 return "Admin"
+            case .rewardActive:
+                return "Reward"
         }
     }
 }
@@ -59,6 +62,8 @@ final class IAPManager {
     private static var freeTrialKeychainKey: String = ""
     private static var freeTrialDays: Int = 7
     private static let appGroupPurchasedKey = "isPurchased"
+    private static var rewardKeychainKey: String = ""
+    private static var rewardDuration: TimeInterval = 30 * 60
 
     // MARK: - Configure (프로젝트별 래퍼에서 호출)
 
@@ -66,18 +71,27 @@ final class IAPManager {
         productIds: [String],
         appGroupIdentifier: String? = nil,
         freeTrialKeychainKey: String? = nil,
-        freeTrialDays: Int = 7
+        freeTrialDays: Int = 7,
+        rewardKeychainKey: String? = nil,
+        rewardDuration: TimeInterval = 30 * 60
     ) {
         Self.productIds = productIds
         Self.appGroupIdentifier = appGroupIdentifier
         Self.freeTrialKeychainKey = freeTrialKeychainKey
             ?? "\(Bundle.main.bundleIdentifier ?? "app").freeTrialStart"
         Self.freeTrialDays = freeTrialDays
+        Self.rewardKeychainKey = rewardKeychainKey
+            ?? "\(Bundle.main.bundleIdentifier ?? "app").rewardEarnedAt"
+        Self.rewardDuration = rewardDuration
 
         // 앱 저장소 → 메모리 (최초 1회)
         let instance = Self.shared
         instance.loadTrialStartDateFromKeychain()
+        instance.loadRewardDateFromKeychain()
         instance.lastStatus = instance.restoreStatus()
+        if instance.lastStatus == .rewardActive {
+            instance.scheduleRewardExpiry()
+        }
         instance.syncPurchaseStatusToAppGroup()
         instance.startTransactionListener()
 
@@ -98,6 +112,73 @@ final class IAPManager {
 
     /// 메모리 캐시 (앱 시작 시 키체인에서 로드, 이후 메모리에서 관리)
     private var trialStartDate: Date?
+
+    // MARK: - Reward
+
+    private var rewardEarnedDate: Date?
+    private var rewardExpiryTimer: Timer?
+
+    var isRewardActive: Bool {
+        guard let earned = self.rewardEarnedDate else { return false }
+        return Date().timeIntervalSince(earned) < Self.rewardDuration
+    }
+
+    var rewardRemainingSeconds: TimeInterval {
+        guard let earned = self.rewardEarnedDate else { return 0 }
+        return max(0, Self.rewardDuration - Date().timeIntervalSince(earned))
+    }
+
+    func grantReward() {
+        let now = Date()
+        self.rewardEarnedDate = now
+        self.saveRewardDateToKeychain(now)
+        self.applyStatus(.rewardActive)
+        self.scheduleRewardExpiry()
+    }
+
+    private func scheduleRewardExpiry() {
+        self.rewardExpiryTimer?.invalidate()
+        guard let earned = self.rewardEarnedDate else { return }
+        let remaining = Self.rewardDuration - Date().timeIntervalSince(earned)
+        guard remaining > 0 else {
+            self.expireReward()
+            return
+        }
+        self.rewardExpiryTimer = Timer.scheduledTimer(withTimeInterval: remaining, repeats: false) { [weak self] _ in
+            self?.expireReward()
+        }
+    }
+
+    private func expireReward() {
+        self.rewardEarnedDate = nil
+        self.clearRewardFromKeychain()
+        self.applyStatus(.free)
+    }
+
+    private func loadRewardDateFromKeychain() {
+        guard !Self.rewardKeychainKey.isEmpty,
+              let dateString = Self.keychainGetString(forKey: Self.rewardKeychainKey),
+              let date = ISO8601DateFormatter().date(from: dateString)
+        else {
+            self.rewardEarnedDate = nil
+            return
+        }
+        self.rewardEarnedDate = date
+    }
+
+    private func saveRewardDateToKeychain(_ date: Date) {
+        guard !Self.rewardKeychainKey.isEmpty else { return }
+        Self.keychainSetString(ISO8601DateFormatter().string(from: date), forKey: Self.rewardKeychainKey)
+    }
+
+    private func clearRewardFromKeychain() {
+        guard !Self.rewardKeychainKey.isEmpty else { return }
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrAccount as String: Self.rewardKeychainKey
+        ]
+        SecItemDelete(query as CFDictionary)
+    }
 
     var isInFreeTrial: Bool {
         guard let startDate = self.trialStartDate else { return false }
@@ -160,6 +241,7 @@ final class IAPManager {
 
     deinit {
         self.updateListenerTask?.cancel()
+        self.rewardExpiryTimer?.invalidate()
     }
 
     // MARK: - Transaction Listener
@@ -251,6 +333,8 @@ final class IAPManager {
                 self.forceStartFreeTrial()
             case .subscribed, .admin:
                 self.applyStatus(status)
+            case .rewardActive:
+                self.grantReward()
         }
     }
 
@@ -276,7 +360,12 @@ final class IAPManager {
             return .freeTrial
         }
 
-        // 4. 아무것도 아님
+        // 4. 보상 활성 확인
+        if self.isRewardActive {
+            return .rewardActive
+        }
+
+        // 5. 아무것도 아님
         return .free
     }
 
@@ -394,6 +483,9 @@ final class IAPManager {
               let status = PurchaseStatus(rawValue: raw)
         else {
             return .free
+        }
+        if status == .rewardActive {
+            return self.isRewardActive ? .rewardActive : .free
         }
         return status
     }
